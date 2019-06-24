@@ -1,12 +1,11 @@
 {
-  "name": "PDS-client",
+  "name": "memo-cache",
   "version": "1.0.12",
-  "description": "Client API for the PDS and PDS KnowledgeBase",
+  "description": "A Redis cache",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
   "scripts": {
-    "test": "node_modules/.bin/mocha  --require ts-node/register  ./test/**/*.ts  --timeout 15000",
-    "publish_npm": "tsc && npm version patch && npm publish"
+    "test": "node_modules/.bin/mocha  --require ts-node/register  ./test/**/*.ts  --timeout 15000"
   },
   "author": "",
   "license": "ISC",
@@ -26,6 +25,7 @@
     "@types/ioredis": "^4.0.12",
     "@types/lodash": "^4.14.121",
     "ioredis": "^4.10.0",
+    "jshint": "^2.10.2",
     "lodash": "^4.17.11",
     "uuid": "^3.3.2"
   }
