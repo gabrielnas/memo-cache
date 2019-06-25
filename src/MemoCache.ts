@@ -5,7 +5,7 @@ var redis = new Redis({dropBufferSupport: true});
 var pub = new Redis();
 
 
-class RedisMemoLock {
+export class RedisMemoCache {
 
     private renewLockLuaScript = `
     if redis.call('GET', KEYS[1]) == ARGV[1]
@@ -17,9 +17,12 @@ class RedisMemoLock {
     end
 `;
 
-    // NewRedisMemoLock Creates a new RedisMemoLock instance
-    public static async newRedisMemoLock(subClient: Redis.Redis, allClient: Redis.Redis, resourceTag: string, lockTimeout: number): Promise<RedisMemoLock> {
+    // NewRedisMemoLock Creates a new RedisMemoCache instance
+    public static async newRedisMemoCache(subClient: Redis.Redis, allClient: Redis.Redis, resourceTag: string, lockTimeout: number): Promise<RedisMemoCache> {
 
+        if (subClient === allClient) {
+            throw new Error('subClient and allClient must be different objects');
+        }
         const pattern = resourceTag + "/notif:*";
 
         //subscribe to the pattern , all caches will publish to this pattern
@@ -37,7 +40,7 @@ class RedisMemoLock {
             }
         });
 
-        const result: RedisMemoLock = new RedisMemoLock(
+        const result: RedisMemoCache = new RedisMemoCache(
             subClient,
             allClient,
             resourceTag,

@@ -1,3 +1,42 @@
+import {RedisMemoCache} from '../src/MemoCache'
+import * as IORedis from 'ioredis'
+import {assert} from 'chai'
+
+
+describe("Memo-Cache Tests", function () {
+
+    let allClient: IORedis.Redis;
+    let subClient: IORedis.Redis;
+    let globalLockTimeout = 5;
+    beforeEach(function (done) {
+        allClient = new IORedis();
+        subClient = new IORedis();
+        done()
+    });
+
+    afterEach(function (done) {
+        allClient.disconnect();
+        subClient.disconnect();
+        done()
+    })
+
+    it('creates new instance', async function () {
+        const memoCache = await RedisMemoCache.newRedisMemoCache(subClient, allClient, 'testing', globalLockTimeout);
+    });
+
+    it('fails to create due to same client instance ', function (done) {
+        RedisMemoCache.newRedisMemoCache(subClient, subClient, 'testing', globalLockTimeout).then(res => {
+            throw new Error('Should have thrown an exception')
+        }).catch(err => {
+            done()
+        })
+    });
+
+    it('creates new instanc', async function () {
+      //  const memoCache = await RedisMemoCache.newRedisMemoCache(subClient, allClient, 'testing', globalLockTimeout);
+    });
+})
+
 /*
 const sleep = (milliseconds: number) => {
     return new Promise(resolve => setTimeout(resolve, milliseconds))
@@ -7,7 +46,7 @@ const sleep = (milliseconds: number) => {
     const memoLockList = [];
 
     for (let i = 0; i < 10; i++) {
-        memoLockList.push(await RedisMemoLock.newRedisMemoLock(redis, pub, 'gdsp', 3));
+        memoLockList.push(await RedisMemoCache.newRedisMemoCache(redis, pub, 'gdsp', 3));
     }
     ;
 
