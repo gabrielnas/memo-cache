@@ -28,7 +28,7 @@ describe("Memo-Cache Tests", function () {
         RedisMemoCache.newRedisMemoCache(subClient, subClient, 'testing', globalLockTimeout).then(res => {
             throw new Error('Should have thrown an exception')
         }).catch(err => {
-            done()
+            done();
         })
     });
 
