@@ -3,6 +3,7 @@ node_js:
  - "node"
 before_install:
  - npm install -g typescript@3.2.4
+ - npm install -g nyc
 script:
  - npm test
 after_success: npm run coverage
