@@ -1,6 +1,8 @@
 language: node_js
 node_js:
  - "node"
+service:
+  - redis-server
 before_install:
  - npm install -g typescript@3.2.4
  - npm install -g nyc
