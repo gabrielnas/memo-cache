@@ -6,6 +6,7 @@ service:
 before_install:
  - npm install -g typescript@3.2.4
  - npm install -g nyc
+ - sudo service redis-server start --bind 127.0.0.1
 script:
  - npm test
 after_success: npm run coverage
