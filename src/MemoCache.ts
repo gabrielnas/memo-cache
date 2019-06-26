@@ -1,9 +1,6 @@
 import * as Redis from 'ioredis';
 import * as uuidv4 from 'uuid/v4'
-
-var redis = new Redis({dropBufferSupport: true});
-var pub = new Redis();
-
+import {throws} from "assert";
 
 export class RedisMemoCache {
 
@@ -57,8 +54,7 @@ export class RedisMemoCache {
                         public subscriptions: Map<string, Array<SubListenerFunction>>) {
     }
 
-
-    private addSubscription(key: string, value: SubListenerFunction) {
+    protected addSubscription(key: string, value: SubListenerFunction) {
         let existing = this.subscriptions.get(key);
         if (!existing) {
             existing = [];
@@ -68,7 +64,7 @@ export class RedisMemoCache {
     }
 
     // Returns a function that will try to extend the resource lock upon execution
-    private lockRenewFuncGenerator(lockKey: string, reqUUID: string): LockRenewFunc {
+    protected lockRenewFuncGenerator(lockKey: string, reqUUID: string): LockRenewFunc {
         return async (extension: number) => {
             let cmd = await this.allClient.eval(this.renewLockLuaScript, 1, lockKey, reqUUID, extension);
 
@@ -149,7 +145,7 @@ export class RedisMemoCache {
 
             //if promiseResolve is not called in time then it rejects
             setTimeout(function () {
-                reject(new Error('Timeout listening for subscription for ' + notifKey));
+                reject('Timeout listening for subscription for ' + notifKey);
             }, timeout * 1000)
         });
 
@@ -177,35 +173,37 @@ export class RedisMemoCache {
         // Refetch the key in case we missed the pubsub announcement by a hair.
         cacheValue = await this.allClient.get(resourceKey);
         if (cacheValue) {
+            console.log('from cache')
             return cacheValue;
         }
+        console.log('from promise')
         return await promise;
     }
 }
 
 // SubListenerFunction is the function received by the channel subscription listeners
-interface SubListenerFunction {
+export interface SubListenerFunction {
     (err: any, channel: string, message: string): void
 }
 
 // FetchFunc is the function that the caller should provide to compute the value if not present in Redis already.
-interface FetchFunc {
+export interface FetchFunc {
     (): Promise<FetchFuncResult>;
 }
 
 // LockRenewFunc is the function that RenewableFetchFunc will get as input and that must be called to extend a locks' life
-interface LockRenewFunc {
+export interface LockRenewFunc {
     (extension: number): Promise<any>;
 }
 
 // RenewableFetchFunc has the same purpose as FetchFunc but, when called, it is offered a function that allows to extend the lock,
 // for scenarios where the Fetch Function might take longer than the lock duration to execute
-interface RenewableFetchFunc {
+export interface RenewableFetchFunc {
     (func: LockRenewFunc): Promise<FetchFuncResult>;
 }
 
 // timeToLive defines for how long the value should be cached in Redis.
-interface FetchFuncResult {
+export interface FetchFuncResult {
     value: string,
     timeToLive: number
 }
