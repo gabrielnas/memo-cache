@@ -149,22 +149,8 @@ export class RedisMemoCache {
             }, timeout * 1000)
         });
 
-
         const subscriptionCallback: SubListenerFunction = (err: any, channel: string, message: string) => {
-            if (promiseResolve) {
-                promiseResolve(message);
-            } else {
-                //rare race condition where the subscriptionCallback is called before the promise is initialized,
-                //this can only happen right after the resourceKey was set, so we can just return it
-                this.allClient.get(resourceKey).then(cacheVal => {
-                    if (cacheVal) {
-                        promiseResolve(cacheVal);
-                    } else {
-                        //should never end up here
-                        throw new Error('subscriptionCallback error, promiseResolve was not set and cache value was null');
-                    }
-                });
-            }
+            promiseResolve(message);
         };
 
         //add our callback as a listener for this notifKey
