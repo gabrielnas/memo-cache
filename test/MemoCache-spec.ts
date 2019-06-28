@@ -20,7 +20,9 @@ describe("Memo-Cache Tests", function () {
         resTimeout = 10;
         resultValue = uuid.v4();
         fetchFunc = sinon.stub();
-        done()
+        allClient.flushall().then(() => done()).catch(e => {
+            throw e;
+        })
     });
 
     afterEach(function (done) {
@@ -104,6 +106,26 @@ describe("Memo-Cache Tests", function () {
             assert.equal(await result2, resultValue);
             assert.isTrue(fetchFunc.calledOnce);
             assert.isTrue(addSubscriptionStub.calledOnce);
+        });
+
+        it('should get resource thrice', async function () {
+            const memoCache = await RedisMemoCache.newRedisMemoCache(subClient, allClient, 'testing', globalLockTimeout);
+            const addSubscriptionStub = replaceAddSubscription(memoCache);
+
+            fetchFunc.returns((async () => {
+                await sleep(100);
+                return {timeToLive: 4, value: resultValue}
+            })());
+
+            const result1 = memoCache.getResource(resId, resTimeout, fetchFunc);
+            const result2 = memoCache.getResource(resId, resTimeout, fetchFunc);
+            const result3 = memoCache.getResource(resId, resTimeout, fetchFunc);
+
+            assert.equal(await result1, resultValue);
+            assert.equal(await result2, resultValue);
+            assert.equal(await result3, resultValue);
+            assert.isTrue(fetchFunc.calledOnce);
+            assert.isTrue(addSubscriptionStub.calledTwice);
         });
 
         it('should get resource twice, from cache re-fetch', async function () {
