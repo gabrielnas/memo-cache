@@ -3,6 +3,7 @@ import * as IORedis from 'ioredis'
 import {assert} from 'chai'
 import * as sinon from 'sinon'
 import * as uuid from 'uuid';
+import {SinonStub} from "sinon";
 
 
 describe("Memo-Cache Tests", function () {
@@ -131,25 +132,21 @@ describe("Memo-Cache Tests", function () {
         it('should get resource twice, from cache re-fetch', async function () {
             const memoCache = await RedisMemoCache.newRedisMemoCache(subClient, allClient, 'testing', globalLockTimeout);
 
-            const addSubscriptionStub = sinon.stub();
-            const originalAddSubscription = (<any>memoCache).__proto__.addSubscription;
-            addSubscriptionStub.onFirstCall().callsFake(originalAddSubscription);
-
-            //lets make the second call to addSubscription wait for 100ms so the first getResource can finish its execution
-            addSubscriptionStub.onSecondCall().callsFake(() => {
-                sleep(100).then(() => originalAddSubscription(arguments));
+            const helperClient = new IORedis();
+            const setStub:SinonStub = <any>sinon.replace(allClient, 'set',<any> sinon.stub());
+            setStub.callsFake(async () => {
+                await helperClient.set('testing' + ":" + resId, resultValue, 'EX', 4);
+                return undefined;
             });
-            sinon.replace(memoCache, <any>'addSubscription', addSubscriptionStub);
 
             fetchFunc.returns(Promise.resolve({timeToLive: 4, value: resultValue}));
 
             const result1 = memoCache.getResource(resId, resTimeout, fetchFunc);
-            const result2 = memoCache.getResource(resId, resTimeout, fetchFunc);
 
             assert.equal(await result1, resultValue);
-            assert.equal(await result2, resultValue);
-            assert.isTrue(fetchFunc.calledOnce);
-            assert.isTrue(addSubscriptionStub.calledOnce);
+            assert.isTrue(setStub.calledOnce);
+            assert.isFalse(fetchFunc.called);
+            helperClient.disconnect();
         });
 
         it('should timeout waiting for resource', async function () {
