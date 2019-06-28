@@ -29,18 +29,38 @@ describe("Memo-Cache Tests", function () {
         done()
     });
 
-    it('creates new instance', async function () {
-        await RedisMemoCache.newRedisMemoCache(subClient, allClient, 'testing', globalLockTimeout);
-    });
 
-    it('fails to create due to same client instance ', function (done) {
-        RedisMemoCache.newRedisMemoCache(subClient, subClient, 'testing', globalLockTimeout).then(() => {
-            throw new Error('Should have thrown an exception')
-        }).catch(err => {
-            done();
-        })
-    });
+    describe('newRedisMemoCache', function () {
 
+        it('creates new instance', async function () {
+            await RedisMemoCache.newRedisMemoCache(subClient, allClient, 'testing', globalLockTimeout);
+        });
+
+        it('fails to create due to same client instance ', function (done) {
+            RedisMemoCache.newRedisMemoCache(subClient, subClient, 'testing', globalLockTimeout).then(() => {
+                throw new Error('Should have thrown an exception')
+            }).catch(err => {
+                done();
+            })
+        });
+
+        it('fails to subscribe to redis', function (done) {
+            const psubscribeStub = sinon.stub();
+            sinon.replace(subClient, 'psubscribe', psubscribeStub);
+            const mockError = new Error('Mock Error');
+            psubscribeStub.callsFake((_pattern, callback)=> {
+                callback(mockError);
+            });
+
+            RedisMemoCache.newRedisMemoCache(subClient, allClient, 'testing', globalLockTimeout).then(() => {
+                throw new Error('Should have thrown an exception')
+            }).catch(err => {
+                assert.equal(err, mockError);
+                assert.isTrue(psubscribeStub.calledOnce);
+                done();
+            });
+        });
+    });
 
     describe('getResource', function () {
 
@@ -88,7 +108,16 @@ describe("Memo-Cache Tests", function () {
 
         it('should get resource twice, from cache re-fetch', async function () {
             const memoCache = await RedisMemoCache.newRedisMemoCache(subClient, allClient, 'testing', globalLockTimeout);
-            const addSubscriptionStub = replaceAddSubscription(memoCache);
+
+            const addSubscriptionStub = sinon.stub();
+            const originalAddSubscription = (<any>memoCache).__proto__.addSubscription;
+            addSubscriptionStub.onFirstCall().callsFake(originalAddSubscription);
+
+            //lets make the second call to addSubscription wait for 100ms so the first getResource can finish its execution
+            addSubscriptionStub.onSecondCall().callsFake(() => {
+                sleep(100).then(() => originalAddSubscription(arguments));
+            });
+            sinon.replace(memoCache, <any>'addSubscription', addSubscriptionStub);
 
             fetchFunc.returns(Promise.resolve({timeToLive: 4, value: resultValue}));
 

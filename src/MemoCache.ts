@@ -170,7 +170,7 @@ export class RedisMemoCache {
         //add our callback as a listener for this notifKey
         this.addSubscription(notifKey, subscriptionCallback);
 
-        // Refetch the key in case we missed the pubsub announcement by a hair.
+        // Re-fetch the key in case we missed the pubsub announcement by a hair.
         cacheValue = await this.allClient.get(resourceKey);
         if (cacheValue) {
             console.log('from cache')
